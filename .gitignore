@@ -1,0 +1,8 @@
+/.metadata/
+/.recommenders/
+/target/
+derby.log
+.idea/
+*.iml
+
+/.settings/
