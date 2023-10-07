@@ -76,10 +76,11 @@
             <artifactId>commons-lang3</artifactId>
             <version>3.8</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/org.mongodb/mongodb-driver-sync -->
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongodb-driver-sync</artifactId>
-            <version>4.3.0</version>
+            <version>4.10.2</version>
         </dependency>
         <!--https://mvnrepository.com/artifact/org.mongodb/mongodb-driver-sync-->
         <dependency>

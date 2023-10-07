@@ -682,6 +682,16 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	@Override
+	public void drop(DropCollectionOptions dropCollectionOptions) {
+		collection.drop(dropCollectionOptions);
+	}
+
+	@Override
+	public void drop(ClientSession clientSession, DropCollectionOptions dropCollectionOptions) {
+		collection.drop(clientSession, dropCollectionOptions);
+	}
+
+	@Override
 	public String createIndex(Bson keys) {
 		return collection.createIndex(keys);
 	}

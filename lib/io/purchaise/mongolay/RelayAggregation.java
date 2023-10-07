@@ -4,6 +4,7 @@ import com.mongodb.ExplainVerbosity;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.model.Collation;
 import lombok.Getter;
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -72,8 +73,20 @@ public class RelayAggregation<TDocument, TResult> extends RelayMongoIterable<TDo
 	}
 
 	@Override
+	public AggregateIterable<TResult> comment(BsonValue bsonValue) {
+		this.aggregateIterable = aggregateIterable.comment(bsonValue);
+		return this;
+	}
+
+	@Override
 	public AggregateIterable<TResult> hint(Bson hint) {
 		this.aggregateIterable = aggregateIterable.hint(hint);
+		return this;
+	}
+
+	@Override
+	public AggregateIterable<TResult> hintString(String s) {
+		this.aggregateIterable = aggregateIterable.hintString(s);
 		return this;
 	}
 

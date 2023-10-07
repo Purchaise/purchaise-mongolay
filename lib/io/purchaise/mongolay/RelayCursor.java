@@ -32,6 +32,12 @@ public class RelayCursor<TDocument, TResult> implements MongoCursor<TResult> {
 	}
 
 	@Override
+	public int available() {
+		// TODO
+		return 0;
+	}
+
+	@Override
 	public TResult tryNext() {
 		TResult result = cursor.tryNext();
 		if (result == null) {

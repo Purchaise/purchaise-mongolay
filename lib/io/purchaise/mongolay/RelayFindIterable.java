@@ -8,6 +8,7 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import lombok.Getter;
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
@@ -147,6 +148,12 @@ public class RelayFindIterable<TDocument, TResult> extends RelayMongoIterable<TD
 	}
 
 	@Override
+	public FindIterable<TResult> comment(BsonValue bsonValue) {
+		this.findIterable = findIterable.comment(bsonValue);
+		return this;
+	}
+
+	@Override
 	public RelayFindIterable<TDocument, TResult> hint(Bson hint) {
 		this.findIterable = findIterable.hint(hint);
 		return this;
@@ -155,6 +162,12 @@ public class RelayFindIterable<TDocument, TResult> extends RelayMongoIterable<TD
 	@Override
 	public FindIterable<TResult> hintString(String hint) {
 		this.findIterable = findIterable.hintString(hint);
+		return this;
+	}
+
+	@Override
+	public FindIterable<TResult> let(Bson bson) {
+		this.findIterable = findIterable.let(bson);
 		return this;
 	}
 
