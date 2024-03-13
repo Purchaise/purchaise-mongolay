@@ -76,6 +76,18 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 		return getMongoRelay().validate(value, this, filter);
 	}
 
+
+	/**
+	 * Validates a value of a class, by checking Hibernate Validation
+	 * And also Access control based on definitions
+	 * @param key
+	 * @return
+	 * @throws RelayException
+	 */
+	public TDocument validate (Bson key, Bson filter) throws RelayException {
+		return getMongoRelay().validate(key, this, filter);
+	}
+
 	@Override
 	public MongoNamespace getNamespace() {
 		return collection.getNamespace();
@@ -1081,6 +1093,16 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	/**
+	 * Retrieves a document on mongo, access control is checked
+	 * @param key
+	 * @param context
+	 * @return
+	 */
+	public CompletableFuture<TDocument> byKey(Bson key, Executor context) {
+		return this.byKey(key, null, context);
+	}
+
+	/**
 	 * Retrieves a document on mongo, access control is checked based on filter
 	 * @param id
 	 * @param filter
@@ -1091,6 +1113,23 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 		return CompletableFuture.supplyAsync(() -> {
 			try {
 				return this.byId(id, filter);
+			} catch (RelayException e) {
+				throw new CompletionException(e);
+			}
+		}, context);
+	}
+
+	/**
+	 * Retrieves a document on mongo, access control is checked based on filter
+	 * @param key
+	 * @param filter
+	 * @param context
+	 * @return
+	 */
+	public CompletableFuture<TDocument> byKey(Bson key, Bson filter, Executor context) {
+		return CompletableFuture.supplyAsync(() -> {
+			try {
+				return this.byKey(key, filter);
 			} catch (RelayException e) {
 				throw new CompletionException(e);
 			}
@@ -1109,6 +1148,16 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 
 	/**
 	 * Retrieves a document on mongo, access control is checked
+	 * @param key
+	 * @return
+	 * @throws RelayException
+	 */
+	public TDocument byKey(Bson key) throws RelayException {
+		return this.byKey(key, (Bson) null);
+	}
+
+	/**
+	 * Retrieves a document on mongo, access control is checked
 	 * @param id
 	 * @param filter
 	 * @return
@@ -1117,6 +1166,29 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	public TDocument byId(ObjectId id, Bson filter) throws RelayException {
 		try {
 			TDocument found = this.validate(id, filter);
+			if (found == null) {
+				// not found
+				throw new RelayException(Http.Status.NOT_FOUND, "not_found");
+			}
+			return found;
+		} catch (RelayException ex) {
+			throw ex;
+		} catch (Exception ex) {
+			ex.printStackTrace();
+			throw new RelayException(Http.Status.INTERNAL_SERVER_ERROR, "service_unavailable");
+		}
+	}
+
+	/**
+	 * Retrieves a document on mongo, access control is checked
+	 * @param key
+	 * @param filter
+	 * @return
+	 * @throws RelayException
+	 */
+	public TDocument byKey(Bson key, Bson filter) throws RelayException {
+		try {
+			TDocument found = this.validate(key, filter);
 			if (found == null) {
 				// not found
 				throw new RelayException(Http.Status.NOT_FOUND, "not_found");

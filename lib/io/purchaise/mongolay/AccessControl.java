@@ -73,8 +73,15 @@ public class AccessControl {
 		if (id == null) {
 			return null;
 		}
+		return this.isAccessible(collection, filter, Filters.eq("_id", id));
+	}
+
+	public Document isAccessible(RelayCollection<Document> collection, Bson filter, Bson key) throws RelayException {
+		if (key == null) {
+			return null;
+		}
 		List<Bson> findFilters = new ArrayList<>();
-		findFilters.add(Filters.eq("_id", id));
+		findFilters.add(key);
 		if (filter != null) {
 			findFilters.add(filter);
 		}
@@ -95,8 +102,15 @@ public class AccessControl {
 		if (id == null) {
 			return null;
 		}
+		return this.isAccessibleOnCollection(collection, filter, Filters.eq("_id", id));
+	}
+
+	public <T extends RelayModel> T isAccessibleOnCollection(RelayCollection<T> collection, Bson filter, Bson key) throws RelayException {
+		if (key == null) {
+			return null;
+		}
 		List<Bson> findFilters = new ArrayList<>();
-		findFilters.add(Filters.eq("_id", id));
+		findFilters.add(key);
 		if (filter != null) {
 			findFilters.add(filter);
 		}

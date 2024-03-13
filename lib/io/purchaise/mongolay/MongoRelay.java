@@ -176,20 +176,25 @@ public class MongoRelay {
 
 	@SuppressWarnings("unchecked")
 	protected <T> T validate (ObjectId value, RelayCollection<T> collection, Bson filter) throws RelayException {
+		return this.validate(Filters.eq("_id", value), collection, filter);
+	}
+
+	@SuppressWarnings("unchecked")
+	protected <T> T validate (Bson key, RelayCollection<T> collection, Bson filter) throws RelayException {
 		// check if its with read or write ACL
 		Class<T> clazz = collection.getDatabase().getClazz();
 		AccessControl accessControl = this.accessControl(collection.getDocumentClass(), collection.getDatabase().getCollectionName());
 
 		if (accessControl == null) {
-			return collection.find(Filters.eq("_id", value)).first();
+			return collection.find(key).first();
 		}
 		// I can only check access for Mongo Collection Model
 		if (RelayModel.class.isAssignableFrom(clazz)) {
-			return (T) accessControl.isAccessibleOnCollection((RelayCollection<RelayModel>) collection, filter, value);
+			return (T) accessControl.isAccessibleOnCollection((RelayCollection<RelayModel>) collection, filter, key);
 		}
 		// or Document model
 		if (Document.class.isAssignableFrom(clazz)) {
-			return (T) accessControl.isAccessible((RelayCollection<Document>) collection, filter, value);
+			return (T) accessControl.isAccessible((RelayCollection<Document>) collection, filter, key);
 		}
 
 		return null;
