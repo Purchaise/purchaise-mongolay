@@ -704,6 +704,42 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	@Override
+	public String createSearchIndex(String index, Bson bson) {
+		return collection.createSearchIndex(index, bson);
+	}
+
+	@Override
+	public String createSearchIndex(Bson bson) {
+		return collection.createSearchIndex(bson);
+	}
+
+	@Override
+	public List<String> createSearchIndexes(List<SearchIndexModel> list) {
+		return collection.createSearchIndexes(list);
+	}
+
+	@Override
+	public void updateSearchIndex(String index, Bson bson) {
+		collection.updateSearchIndex(index, bson);
+	}
+
+	@Override
+	public void dropSearchIndex(String indexes) {
+		collection.dropSearchIndex(indexes);
+	}
+
+	@Override
+	public ListSearchIndexesIterable<Document> listSearchIndexes() {
+		return collection.listSearchIndexes();
+	}
+
+	@Override
+	public <TResult> ListSearchIndexesIterable<TResult> listSearchIndexes(Class<TResult> clazz) {
+		return collection.listSearchIndexes(clazz);
+	}
+
+
+	@Override
 	public String createIndex(Bson keys) {
 		return collection.createIndex(keys);
 	}
