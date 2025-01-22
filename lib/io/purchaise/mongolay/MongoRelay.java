@@ -358,10 +358,10 @@ public class MongoRelay {
 
 		SubClasses subClasses = clazz.getDeclaredAnnotation(SubClasses.class);
 		if (subClasses != null) {
-			List<IReference> subs = Arrays.stream(subClasses.of()).map((next) -> {
-				System.out.println("Class: " + next + " at: " + clazz.getSimpleName());
-				return this.discover(next);
-			}).flatMap(Collection::stream).collect(Collectors.toList());
+			List<IReference> subs = Arrays.stream(subClasses.of())
+					.map(this::discover)
+					.flatMap(Collection::stream)
+					.collect(Collectors.toList());
 			references.addAll(subs);
 		}
 		return references;
