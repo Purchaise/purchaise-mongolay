@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by agonlohaj on 08 Aug, 2019
@@ -119,6 +120,11 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	@Override
+	public Long getTimeout(TimeUnit timeUnit) {
+		return collection.getTimeout(timeUnit);
+	}
+
+	@Override
 	public <NewTDocument> MongoCollection<NewTDocument> withDocumentClass(Class<NewTDocument> clazz) {
 		return collection.withDocumentClass(clazz);
 	}
@@ -141,6 +147,11 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	@Override
 	public MongoCollection<TDocument> withReadConcern(ReadConcern readConcern) {
 		return collection.withReadConcern(readConcern);
+	}
+
+	@Override
+	public MongoCollection<TDocument> withTimeout(long l, TimeUnit timeUnit) {
+		return collection.withTimeout(l, timeUnit);
 	}
 
 	public List<Bson> filterWithAcl(Bson filter) {
@@ -704,13 +715,13 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	@Override
-	public String createSearchIndex(String index, Bson bson) {
-		return collection.createSearchIndex(index, bson);
+	public String createSearchIndex(String name, Bson options) {
+		return collection.createSearchIndex(name, options);
 	}
 
 	@Override
-	public String createSearchIndex(Bson bson) {
-		return collection.createSearchIndex(bson);
+	public String createSearchIndex(Bson options) {
+		return collection.createSearchIndex(options);
 	}
 
 	@Override
@@ -719,13 +730,13 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	@Override
-	public void updateSearchIndex(String index, Bson bson) {
-		collection.updateSearchIndex(index, bson);
+	public void updateSearchIndex(String name, Bson options) {
+		collection.updateSearchIndex(name, options);
 	}
 
 	@Override
-	public void dropSearchIndex(String indexes) {
-		collection.dropSearchIndex(indexes);
+	public void dropSearchIndex(String name) {
+		collection.dropSearchIndex(name);
 	}
 
 	@Override
@@ -737,7 +748,6 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	public <TResult> ListSearchIndexesIterable<TResult> listSearchIndexes(Class<TResult> clazz) {
 		return collection.listSearchIndexes(clazz);
 	}
-
 
 	@Override
 	public String createIndex(Bson keys) {

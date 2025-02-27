@@ -5,6 +5,7 @@ import com.mongodb.ExplainVerbosity;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.cursor.TimeoutMode;
 import com.mongodb.client.model.Collation;
 import com.mongodb.client.model.Filters;
 import lombok.Getter;
@@ -118,12 +119,6 @@ public class RelayFindIterable<TDocument, TResult> extends RelayMongoIterable<TD
 	}
 
 	@Override
-	public RelayFindIterable<TDocument, TResult> oplogReplay(boolean oplogReplay) {
-		this.findIterable = findIterable.oplogReplay(oplogReplay);
-		return this;
-	}
-
-	@Override
 	public RelayFindIterable<TDocument, TResult> partial(boolean partial) {
 		this.findIterable = findIterable.partial(partial);
 		return this;
@@ -198,6 +193,12 @@ public class RelayFindIterable<TDocument, TResult> extends RelayMongoIterable<TD
 	@Override
 	public FindIterable<TResult> allowDiskUse(Boolean allowDiskUse) {
 		this.findIterable = findIterable.allowDiskUse(allowDiskUse);
+		return this;
+	}
+
+	@Override
+	public FindIterable<TResult> timeoutMode(TimeoutMode timeoutMode) {
+		this.findIterable = findIterable.timeoutMode(timeoutMode);
 		return this;
 	}
 

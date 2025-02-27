@@ -6,7 +6,8 @@ package io.purchaise.mongolay.utils;
 public enum IndexType {
     ASC(1),
     DESC(-1),
-    TEXT("text");
+    TEXT("text"),
+    VECTOR_SEARCH("vector_search");
 
     private final Object type;
 

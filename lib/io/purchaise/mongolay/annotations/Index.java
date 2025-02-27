@@ -25,6 +25,5 @@ public @interface Index {
      */
     boolean background() default true;
 
-
-
+    String[] filters() default {};
 }

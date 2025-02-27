@@ -416,6 +416,19 @@ public class MongoRelay {
 				case TEXT:
 					collection.createIndex(Indexes.text(name), new IndexOptions().background(background));
 					break;
+				case VECTOR_SEARCH:
+					Document vectorField = new Document("type", "vector")
+							.append("numDimensions", 1536)
+							.append("path", name)
+							.append("similarity", "cosine");
+					String[] filters = annotation.filters();
+					List<Document> fields = new ArrayList<>();
+					fields.add(vectorField);
+					for (String filter: filters) {
+						fields.add(new Document("path", filter).append("type", "filter"));
+					}
+					collection.createSearchIndex(String.format("%s_vector_index", name), new Document("fields", fields));
+					break;
 			}
 		}  catch (Exception ex) {
 			System.out.println("Error creating index: " + ex.getMessage());

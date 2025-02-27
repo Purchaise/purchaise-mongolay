@@ -2,6 +2,7 @@ package io.purchaise.mongolay;
 
 import com.mongodb.ExplainVerbosity;
 import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.cursor.TimeoutMode;
 import com.mongodb.client.model.Collation;
 import lombok.Getter;
 import org.bson.BsonValue;
@@ -39,6 +40,12 @@ public class RelayAggregation<TDocument, TResult> extends RelayMongoIterable<TDo
 	@Override
 	public AggregateIterable<TResult> batchSize(int batchSize) {
 		super.batchSize(batchSize);
+		return this;
+	}
+
+	@Override
+	public AggregateIterable<TResult> timeoutMode(TimeoutMode timeoutMode) {
+		this.aggregateIterable = aggregateIterable.timeoutMode(timeoutMode);
 		return this;
 	}
 

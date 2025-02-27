@@ -12,6 +12,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created by agonlohaj on 07 Aug, 2019
@@ -92,6 +93,11 @@ public class RelayDatabase<T> implements MongoDatabase {
 		return mongoDatabase.getReadConcern();
 	}
 
+	@Override
+	public Long getTimeout(TimeUnit timeUnit) {
+		return mongoDatabase.getTimeout(timeUnit);
+	}
+
 	/**
 	 * {@link MongoDatabase#getCodecRegistry()}
 	 * @return
@@ -122,6 +128,11 @@ public class RelayDatabase<T> implements MongoDatabase {
 	@Override
 	public MongoDatabase withReadConcern(ReadConcern readConcern) {
 		return mongoDatabase.withReadConcern(readConcern);
+	}
+
+	@Override
+	public MongoDatabase withTimeout(long l, TimeUnit timeUnit) {
+		return mongoDatabase.withTimeout(l, timeUnit);
 	}
 
 	public RelayCollection<T> getCollection() {
@@ -193,7 +204,7 @@ public class RelayDatabase<T> implements MongoDatabase {
 	}
 
 	@Override
-	public MongoIterable<String> listCollectionNames() {
+	public ListCollectionNamesIterable listCollectionNames() {
 		return mongoDatabase.listCollectionNames();
 	}
 
@@ -208,7 +219,7 @@ public class RelayDatabase<T> implements MongoDatabase {
 	}
 
 	@Override
-	public MongoIterable<String> listCollectionNames(ClientSession clientSession) {
+	public ListCollectionNamesIterable listCollectionNames(ClientSession clientSession) {
 		return mongoDatabase.listCollectionNames(clientSession);
 	}
 
