@@ -26,4 +26,5 @@ public @interface Index {
     boolean background() default true;
 
     String[] filters() default {};
+    int numOfDimensions() default 1536;
 }

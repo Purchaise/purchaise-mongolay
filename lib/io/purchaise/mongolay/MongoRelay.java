@@ -2,6 +2,7 @@ package io.purchaise.mongolay;
 
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+import com.mongodb.client.model.search.VectorSearchOptions;
 import io.purchaise.mongolay.annotations.Index;
 import io.purchaise.mongolay.annotations.Reference;
 import io.purchaise.mongolay.annotations.SubClasses;
@@ -416,7 +417,7 @@ public class MongoRelay {
 					break;
 				case VECTOR_SEARCH:
 					Document vectorField = new Document("type", "vector")
-							.append("numDimensions", 1536)
+							.append("numDimensions", annotation.numOfDimensions())
 							.append("path", name)
 							.append("similarity", "cosine");
 					String[] filters = annotation.filters();
