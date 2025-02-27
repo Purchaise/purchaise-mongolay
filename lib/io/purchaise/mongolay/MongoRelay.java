@@ -1,9 +1,7 @@
 package io.purchaise.mongolay;
 
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.IndexOptions;
-import com.mongodb.client.model.Indexes;
+import com.mongodb.client.model.*;
 import io.purchaise.mongolay.annotations.Index;
 import io.purchaise.mongolay.annotations.Reference;
 import io.purchaise.mongolay.annotations.SubClasses;
@@ -427,7 +425,14 @@ public class MongoRelay {
 					for (String filter: filters) {
 						fields.add(new Document("path", filter).append("type", "filter"));
 					}
-					collection.createSearchIndex(String.format("%s_vector_index", name), new Document("fields", fields));
+					// Define the index model
+					SearchIndexModel indexModel = new SearchIndexModel(
+							String.format("%s_vector_index", name),
+							new Document("fields", fields),
+							SearchIndexType.vectorSearch()
+					);
+
+					collection.createSearchIndexes(List.of(indexModel));
 					break;
 			}
 		}  catch (Exception ex) {
