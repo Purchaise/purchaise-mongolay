@@ -9,6 +9,7 @@ import com.mongodb.client.result.InsertManyResult;
 import com.mongodb.client.result.InsertOneResult;
 import com.mongodb.client.result.UpdateResult;
 import com.mongodb.client.ClientSession;
+import io.purchaise.mongolay.options.OptionsUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.bson.Document;
@@ -76,7 +77,6 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	public TDocument validate (ObjectId value, Bson filter) throws RelayException {
 		return getMongoRelay().validate(value, this, filter);
 	}
-
 
 	/**
 	 * Validates a value of a class, by checking Hibernate Validation
@@ -150,8 +150,8 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	@Override
-	public MongoCollection<TDocument> withTimeout(long l, TimeUnit timeUnit) {
-		return collection.withTimeout(l, timeUnit);
+	public MongoCollection<TDocument> withTimeout(long timeout, TimeUnit unit) {
+		return collection.withTimeout(timeout, unit);
 	}
 
 	public List<Bson> filterWithAcl(Bson filter) {
@@ -296,11 +296,17 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 
 	@Override
 	public RelayFindIterable<TDocument, TDocument> find() {
+		if (OptionsUtils.hasCalculationOptions(this.getDatabase())) {
+			return new RelayFindToAggregateIterable<>(this, collection.find(), getDocumentClass());
+		}
 		return new RelayFindIterable<>(this, collection.find(), getDocumentClass());
 	}
 
 	@Override
 	public <TResult> RelayFindIterable<TDocument, TResult> find(Class<TResult> tResultClass) {
+		if (OptionsUtils.hasCalculationOptions(this.getDatabase())) {
+			return new RelayFindToAggregateIterable<>(this, collection.find(tResultClass), tResultClass);
+		}
 		return new RelayFindIterable<>(this, collection.find(tResultClass), tResultClass);
 	}
 
@@ -316,11 +322,17 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 
 	@Override
 	public RelayFindIterable<TDocument, TDocument> find(ClientSession clientSession) {
-		return new RelayFindIterable<>(this, collection.find(clientSession), getDocumentClass());
+		if (OptionsUtils.hasCalculationOptions(this.getDatabase())) {
+			return new RelayFindToAggregateIterable<>(this, collection.find(clientSession), this.getDocumentClass());
+		}
+		return new RelayFindIterable<>(this, collection.find(clientSession), this.getDocumentClass());
 	}
 
 	@Override
 	public <TResult> RelayFindIterable<TDocument, TResult> find(ClientSession clientSession, Class<TResult> tResultClass) {
+		if (OptionsUtils.hasCalculationOptions(this.getDatabase())) {
+			return new RelayFindToAggregateIterable<>(this, collection.find(clientSession, tResultClass), tResultClass);
+		}
 		return new RelayFindIterable<>(this, collection.find(clientSession, tResultClass), tResultClass);
 	}
 
@@ -336,22 +348,48 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 
 	@Override
 	public RelayAggregation<TDocument, TDocument> aggregate(List<? extends Bson> pipeline) {
-		return new RelayAggregation<>(this, collection.aggregate(pipeline), getDocumentClass());
+		return new RelayAggregation<>(
+				this,
+				collection.aggregate(OptionsUtils.mergeCalculationOptions(this.getDatabase(), pipeline)),
+				getDocumentClass()
+		);
 	}
 
 	@Override
 	public <TResult> RelayAggregation<TDocument, TResult> aggregate(List<? extends Bson> pipeline, Class<TResult> tResultClass) {
-		return new RelayAggregation<>(this, collection.aggregate(pipeline, tResultClass), tResultClass);
+		return new RelayAggregation<>(
+				this,
+				collection.aggregate(
+						OptionsUtils.mergeCalculationOptions(this.getDatabase(), pipeline),
+						tResultClass
+				),
+				tResultClass
+		);
 	}
 
 	@Override
 	public RelayAggregation<TDocument, TDocument> aggregate(ClientSession clientSession, List<? extends Bson> pipeline) {
-		return new RelayAggregation<>(this, collection.aggregate(clientSession, pipeline), getDocumentClass());
+		return new RelayAggregation<>(
+				this,
+				collection.aggregate(
+						clientSession,
+						OptionsUtils.mergeCalculationOptions(this.getDatabase(), pipeline)
+				),
+				getDocumentClass()
+		);
 	}
 
 	@Override
 	public <TResult> RelayAggregation<TDocument, TResult> aggregate(ClientSession clientSession, List<? extends Bson> pipeline, Class<TResult> tResultClass) {
-		return new RelayAggregation<>(this, collection.aggregate(clientSession, pipeline, tResultClass), tResultClass);
+		return new RelayAggregation<>(
+				this,
+				collection.aggregate(
+						clientSession,
+						OptionsUtils.mergeCalculationOptions(this.getDatabase(), pipeline),
+						tResultClass
+				),
+				tResultClass
+		);
 	}
 
 	@Override
@@ -715,13 +753,13 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	@Override
-	public String createSearchIndex(String name, Bson options) {
-		return collection.createSearchIndex(name, options);
+	public String createSearchIndex(String index, Bson bson) {
+		return collection.createSearchIndex(index, bson);
 	}
 
 	@Override
-	public String createSearchIndex(Bson options) {
-		return collection.createSearchIndex(options);
+	public String createSearchIndex(Bson bson) {
+		return collection.createSearchIndex(bson);
 	}
 
 	@Override
@@ -730,13 +768,13 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	}
 
 	@Override
-	public void updateSearchIndex(String name, Bson options) {
-		collection.updateSearchIndex(name, options);
+	public void updateSearchIndex(String index, Bson bson) {
+		collection.updateSearchIndex(index, bson);
 	}
 
 	@Override
-	public void dropSearchIndex(String name) {
-		collection.dropSearchIndex(name);
+	public void dropSearchIndex(String indexes) {
+		collection.dropSearchIndex(indexes);
 	}
 
 	@Override
@@ -1148,6 +1186,7 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 		return this.byKey(key, null, context);
 	}
 
+
 	/**
 	 * Retrieves a document on mongo, access control is checked based on filter
 	 * @param id
@@ -1201,7 +1240,6 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 	public TDocument byKey(Bson key) throws RelayException {
 		return this.byKey(key, (Bson) null);
 	}
-
 	/**
 	 * Retrieves a document on mongo, access control is checked
 	 * @param id

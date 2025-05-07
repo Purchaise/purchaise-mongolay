@@ -1,4 +1,4 @@
-package io.purchaise.mongolay.utils;
+package io.purchaise.mongolay.annotations;
 
 /**
  * Defines the type of the index to create for a field.

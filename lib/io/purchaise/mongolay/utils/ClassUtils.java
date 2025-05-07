@@ -1,9 +1,17 @@
 package io.purchaise.mongolay.utils;
 
+import io.purchaise.mongolay.RelayDatabase;
 import io.purchaise.mongolay.annotations.Entity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.ParameterizedType;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+
+import java.lang.reflect.Field;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -40,5 +48,42 @@ public class ClassUtils {
 
 		Entity entity = next[0];
 		return entity.collection();
+	}
+
+	public static <T> boolean isDynamicEntity(Class<T> clazz) {
+		Entity[] next = clazz.getAnnotationsByType(Entity.class);
+		if (next.length == 0) {
+			return false;
+		}
+
+		Entity entity = next[0];
+		return entity.dynamic();
+	}
+
+	public static String getDynamicEntityName(RelayDatabase<?> database, String baseCollectionName) {
+		Map<Class<?>, String> collections = database.getMongoRelay().getCollections();
+		if (collections.isEmpty()) {
+			return baseCollectionName;
+		}
+
+		return collections
+				.keySet()
+				.stream()
+				.filter(clazz -> ClassUtils.entityName(clazz).equals(baseCollectionName))
+				.findFirst()
+				.map(collections::get)
+				.orElse(baseCollectionName);
+	}
+
+	public static Class<?> resolveListElementType(Field field) {
+		Type genericType = field.getGenericType();
+		if (genericType instanceof ParameterizedType) {
+			ParameterizedType parameterizedType = (ParameterizedType) genericType;
+			Type[] args = parameterizedType.getActualTypeArguments();
+			if (args.length > 0 && args[0] instanceof Class) {
+				return (Class<?>) args[0];
+			}
+		}
+		throw new IllegalArgumentException("Cannot determine element type for " + field.getName());
 	}
 }

@@ -46,14 +46,8 @@ public class RelayFindIterable<TDocument, TResult> extends RelayMongoIterable<TD
 
 	@Override
 	public RelayFindIterable<TDocument, TResult> filter(Bson filter) {
-		List<Bson> filters = new ArrayList<>();
-		if (access) {
-			filters = getMongoRelay().acl(relayCollection.getDocumentClass(), getRelayCollection().getDatabase().getCollectionName());
-		}
-		if (filter != null) {
-			filters.add(filter);
-		}
-		if (filters.size() == 0) {
+		List<Bson> filters = this.extractFilters(filter);
+		if (filters.isEmpty()) {
 			return this;
 		}
 		if (filters.size() == 1) {
@@ -231,5 +225,16 @@ public class RelayFindIterable<TDocument, TResult> extends RelayMongoIterable<TD
 	public RelayFindIterable<TDocument, TResult> batchSize(int batchSize) {
 		this.findIterable = findIterable.batchSize(batchSize);
 		return this;
+	}
+
+	protected List<Bson> extractFilters (Bson filter) {
+		List<Bson> filters = new ArrayList<>();
+		if (access) {
+			filters = getMongoRelay().acl(relayCollection.getDocumentClass(), getRelayCollection().getDatabase().getCollectionName());
+		}
+		if (filter != null) {
+			filters.add(filter);
+		}
+		return filters;
 	}
 }

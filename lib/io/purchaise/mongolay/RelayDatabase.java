@@ -12,6 +12,7 @@ import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -23,6 +24,7 @@ public class RelayDatabase<T> implements MongoDatabase {
 	@Getter
 	private MongoDatabase mongoDatabase;
 
+	private Class<?> sourceClazz;
 	@Getter
 	private Class<T> clazz;
 	@Getter
@@ -38,6 +40,11 @@ public class RelayDatabase<T> implements MongoDatabase {
 		this.mongoDatabase = mongoDatabase;
 	}
 
+	public RelayDatabase<T> withSourceClass(Class<?> clazz) {
+		this.sourceClazz = clazz;
+		return this;
+	}
+
 	public RelayDatabase<T> withClass(Class<T> clazz) {
 		this.clazz = clazz;
 		return this;
@@ -46,6 +53,10 @@ public class RelayDatabase<T> implements MongoDatabase {
 	public RelayDatabase<T> withCollectionName(String collectionName) {
 		this.collectionName = collectionName;
 		return this;
+	}
+
+	public Class<?> getSourceClass() {
+		return Objects.nonNull(this.sourceClazz) ? this.sourceClazz : this.getClazz();
 	}
 
 	/**
@@ -131,8 +142,8 @@ public class RelayDatabase<T> implements MongoDatabase {
 	}
 
 	@Override
-	public MongoDatabase withTimeout(long l, TimeUnit timeUnit) {
-		return mongoDatabase.withTimeout(l, timeUnit);
+	public MongoDatabase withTimeout(long timeout, TimeUnit timeUnit) {
+		return mongoDatabase.withTimeout(timeout, timeUnit);
 	}
 
 	public RelayCollection<T> getCollection() {

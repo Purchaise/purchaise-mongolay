@@ -10,19 +10,7 @@ import java.lang.annotation.*;
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.FIELD})
-public @interface Index {
-    /**
-     * "Direction" of the indexing.  Defaults to {@link IndexType#DESC}.
-     *
-     * @see IndexType
-     */
-    IndexType type() default IndexType.DESC;
-
-    /**
-     * Whether to run this indexing on the background or not
-     */
-    boolean background() default true;
-
+public @interface VectorSearchIndex {
     /**
      * Filters to use combined with this index, optional, useful for Vector Search
      * @return
@@ -39,5 +27,11 @@ public @interface Index {
      * Field to use for Compound Indexes
      */
     String field() default "";
+
+    /**
+     * The similarity to use to index the field
+     * @return
+     */
+    String similarity() default "cosine";
 
 }
