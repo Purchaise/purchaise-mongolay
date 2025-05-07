@@ -1,6 +1,6 @@
 package io.purchaise.mongolay.annotations;
 
-import io.goprime.mongolay.validations.json.enums.DependentOperator;
+import io.purchaise.mongolay.validations.json.enums.DependentOperator;
 
 import java.lang.annotation.*;
 

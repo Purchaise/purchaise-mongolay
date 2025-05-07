@@ -1,7 +1,7 @@
 package io.purchaise.mongolay.annotations;
 
 
-import io.goprime.mongolay.Constants;
+import io.purchaise.mongolay.Constants;
 
 import java.lang.annotation.*;
 
