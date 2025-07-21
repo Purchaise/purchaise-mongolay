@@ -1021,7 +1021,7 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 			if (id == null) {
 				throw new RelayException(Http.Status.BAD_REQUEST, "invalid_parameters");
 			}
-			throw new RelayException(Http.Status.NOT_FOUND, "not_found");
+			throw new RelayException(Http.Status.NOT_FOUND, "not_found", List.of(id));
 		} catch (RelayException ex) {
 			throw ex;
 		} catch (Exception ex) {
@@ -1073,7 +1073,7 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 			if (result.wasAcknowledged() && result.getDeletedCount() > 0) {
 				return id;
 			}
-			throw new RelayException(Http.Status.NOT_FOUND, "not_found");
+			throw new RelayException(Http.Status.NOT_FOUND, "not_found", List.of(id));
 		} catch (RelayException ex) {
 			throw ex;
 		} catch (Exception ex) {
@@ -1168,7 +1168,7 @@ public class RelayCollection<TDocument> implements MongoCollection<TDocument> {
 			TDocument found = this.validate(id, filter);
 			if (found == null) {
 				// not found
-				throw new RelayException(Http.Status.NOT_FOUND, "not_found");
+				throw new RelayException(Http.Status.NOT_FOUND, "not_found", List.of(id));
 			}
 			return found;
 		} catch (RelayException ex) {
