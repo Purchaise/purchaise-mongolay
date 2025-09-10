@@ -1,5 +1,6 @@
 package io.purchaise.mongolay;
 
+import com.mongodb.MongoCommandException;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
 import io.purchaise.mongolay.annotations.*;
@@ -472,9 +473,13 @@ public class MongoRelay {
 	public void ensureIndexes(Class<? extends RelayModel> clazz, String collectionName) {
 		List<Field> indexedFields = FieldUtils.getFieldsListWithAnnotation(clazz, Index.class);
 		indexedFields.forEach(field -> this.ensureIndexes(field, collectionName));
+
+		RelayCollection<Document> collection = this.on(collectionName).getCollection();
+		List<Document> existing = collection.listSearchIndexes().into(new ArrayList<>());
+
 		this.ensureCompoundIndexes(clazz, collectionName);
-		this.ensureAtlasSearchIndexes(clazz, collectionName);
-		this.ensureSearchIndex(clazz, collectionName);
+		this.ensureAtlasSearchIndexes(clazz, collectionName, existing);
+		this.ensureSearchIndex(clazz, collectionName, existing);
 	}
 
 	/**
@@ -520,8 +525,9 @@ public class MongoRelay {
 	 * @param clazz
 	 * @param collectionName
 	 */
-	private void ensureAtlasSearchIndexes(Class<? extends RelayModel> clazz, String collectionName) {
+	private void ensureAtlasSearchIndexes(Class<? extends RelayModel> clazz, String collectionName, List<Document> existing) {
 		List<Field> indexedFields = FieldUtils.getFieldsListWithAnnotation(clazz, VectorSearchIndex.class);
+
 		List<SearchIndexModel> indexes = indexedFields
 				.stream()
 				.map(field -> {
@@ -545,15 +551,26 @@ public class MongoRelay {
 							SearchIndexType.vectorSearch()
 					);
 				})
+				.filter((next) -> existing.stream().noneMatch((which) -> which.get("name", "").equals(next.getName())))
 				.collect(Collectors.toList());
 		if (indexes.isEmpty()) {
 			return;
 		}
-		RelayCollection<Document> collection = this.on(collectionName).getCollection();
-		collection.createSearchIndexes(indexes);
+		try {
+			RelayCollection<Document> collection = this.on(collectionName).getCollection();
+			collection.createSearchIndexes(indexes);
+		} catch (MongoCommandException e) {
+			if (e.getErrorCode() == 26) {
+				// NamespaceNotFound
+				// ignore
+				return;
+			}
+			throw e;
+		}
 	}
 
 	private void ensureCompoundIndexes(Class<? extends RelayModel> clazz, String collectionName) {
+
 		List<CompoundIndex> compoundIndexes = List.of(clazz.getAnnotationsByType(CompoundIndex.class));
 		List<IndexModel> indexes = compoundIndexes
 				.stream()
@@ -571,76 +588,96 @@ public class MongoRelay {
 			return;
 		}
 		RelayCollection<Document> collection = this.on(collectionName).getCollection();
-		collection.createIndexes(indexes);
+		try {
+			collection.createIndexes(indexes);
+		} catch (MongoCommandException e) {
+			if (e.getErrorCode() == 26) {
+				// NamespaceNotFound
+				// ignore
+				return;
+			}
+			throw e;
+		}
 	}
 
-	private void ensureSearchIndex(Class<? extends RelayModel> clazz, String collectionName) {
+	private void ensureSearchIndex(Class<? extends RelayModel> clazz, String collectionName, List<Document> existing) {
 		List<AtlasIndex> atlasIndexes = List.of(clazz.getAnnotationsByType(AtlasIndex.class));
 		List<SearchIndexModel> indexes = atlasIndexes.stream().map((atlasIndex) -> {
-			Document definition =
-					new Document(
-							"mappings",
-							new Document("dynamic", atlasIndex.dynamic())
-									.append("fields", buildSearchFields(clazz))
+					Document definition =
+							new Document(
+									"mappings",
+									new Document("dynamic", atlasIndex.dynamic())
+											.append("fields", buildSearchFields(clazz, atlasIndex.custom()))
+							);
+
+					if (!atlasIndex.analyzer().isEmpty()) {
+						definition.append("analyzer", atlasIndex.analyzer());
+					}
+
+					if (!atlasIndex.searchAnalyzer().isEmpty()) {
+						definition.append("searchAnalyzer", atlasIndex.searchAnalyzer());
+					}
+
+					// numPartitions
+					if (atlasIndex.numPartitions() > 0) {
+						definition.append("numPartitions", atlasIndex.numPartitions());
+					}
+
+					// custom analyzers
+					if (atlasIndex.analyzers().length > 0) {
+						definition.append("analyzers", buildCustomAnalyzers(atlasIndex.analyzers()));
+					}
+
+					// storedSource
+					StoredSource storedSource = atlasIndex.storedSource();
+					if (storedSource.enabled()) {
+						if (storedSource.include().length == 0 && storedSource.exclude().length == 0) {
+							definition.append("storedSource", true);
+						} else {
+							Document storedSourceFields = new Document();
+							if (storedSource.include().length  > 0) {
+								storedSourceFields.append("include", List.of(storedSource.include()));
+							}
+							if (storedSource.exclude().length  > 0) {
+								storedSourceFields.append("exclude", List.of(storedSource.exclude()));
+							}
+							definition.append("storedSource", storedSourceFields);
+						}
+					}
+
+					// synonyms
+					if (atlasIndex.synonyms().length > 0) {
+						List<Document> synonyms = new ArrayList<>();
+						for (Synonym synonym : atlasIndex.synonyms()) {
+							synonyms.add(new Document("name", synonym.name())
+									.append("source", new Document("collection", synonym.sourceCollection()))
+									.append("analyzer", synonym.analyzer()));
+						}
+						definition.append("synonyms", synonyms);
+					}
+
+					return new SearchIndexModel(
+							atlasIndex.name(),
+							definition,
+							SearchIndexType.search()
 					);
-
-			if (!atlasIndex.analyzer().isEmpty()) {
-				definition.append("analyzer", atlasIndex.analyzer());
-			}
-
-			if (!atlasIndex.searchAnalyzer().isEmpty()) {
-				definition.append("searchAnalyzer", atlasIndex.searchAnalyzer());
-			}
-
-			// numPartitions
-			if (atlasIndex.numPartitions() > 0) {
-				definition.append("numPartitions", atlasIndex.numPartitions());
-			}
-
-			// custom analyzers
-			if (atlasIndex.analyzers().length > 0) {
-				definition.append("analyzers", buildCustomAnalyzers(atlasIndex.analyzers()));
-			}
-
-			// storedSource
-			StoredSource storedSource = atlasIndex.storedSource();
-			if (storedSource.enabled()) {
-				if (storedSource.include().length == 0 && storedSource.exclude().length == 0) {
-					definition.append("storedSource", true);
-				} else {
-					Document storedSourceFields = new Document();
-					if (storedSource.include().length  > 0) {
-						storedSourceFields.append("include", List.of(storedSource.include()));
-					}
-					if (storedSource.exclude().length  > 0) {
-						storedSourceFields.append("exclude", List.of(storedSource.exclude()));
-					}
-					definition.append("storedSource", storedSourceFields);
-				}
-			}
-
-			// synonyms
-			if (atlasIndex.synonyms().length > 0) {
-				List<Document> synonyms = new ArrayList<>();
-				for (Synonym synonym : atlasIndex.synonyms()) {
-					synonyms.add(new Document("name", synonym.name())
-							.append("source", new Document("collection", synonym.sourceCollection()))
-							.append("analyzer", synonym.analyzer()));
-				}
-				definition.append("synonyms", synonyms);
-			}
-
-			return new SearchIndexModel(
-					atlasIndex.name(),
-					definition,
-					SearchIndexType.search()
-			);
-		}).collect(Collectors.toList());
+				})
+				.filter((next) -> existing.stream().noneMatch((which) -> which.get("name", "").equals(next.getName())))
+				.collect(Collectors.toList());
 		if (indexes.isEmpty()) {
 			return;
 		}
 		RelayCollection<Document> collection = this.on(collectionName).getCollection();
-		collection.createSearchIndexes(indexes);
+		try {
+			collection.createSearchIndexes(indexes);
+		} catch (MongoCommandException e) {
+			if (e.getErrorCode() == 26) {
+				// NamespaceNotFound
+				// ignore
+				return;
+			}
+			throw e;
+		}
 	}
 
 	private static List<Document> buildCustomAnalyzers(AnalyzerDef[] analyzers) {
