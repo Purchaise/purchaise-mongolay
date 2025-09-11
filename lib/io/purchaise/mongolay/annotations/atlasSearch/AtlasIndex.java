@@ -63,4 +63,10 @@ public @interface AtlasIndex {
 	 * These can be referenced by synonym-aware analyzers or in queries.
 	 */
 	Synonym[] synonyms() default {};
+
+	/**
+	 * Defines class-level Atlas Search fields to include in the index
+	 * mapping alongside any property-level annotations
+	 */
+	AtlasField[] custom() default {};
 }

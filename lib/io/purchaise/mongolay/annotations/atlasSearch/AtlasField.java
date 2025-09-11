@@ -18,6 +18,9 @@ import java.lang.annotation.*;
 @Repeatable(AtlasFields.class)
 public @interface AtlasField {
 	/* — General — */
+	/** Field name */
+	String name() default "";
+	/* — General — */
 	/** Atlas Search type (string, autocomplete, token, number, date, etc.) */
 	FieldType type() default FieldType.STRING;
 

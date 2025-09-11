@@ -821,7 +821,7 @@ public class MongoRelay {
 		return docs;
 	}
 
-	private static Document buildSearchFields(Class<?> clazz) {
+	private static Document buildSearchFields(Class<?> clazz, AtlasField[] customFields) {
 		Document fieldsDoc = new Document();
 
 		for (Field field : clazz.getDeclaredFields()) {
@@ -829,12 +829,22 @@ public class MongoRelay {
 			if (annotations.length == 0) continue;
 
 			List<Document> definitions = Stream.of(annotations)
-					.map(annotation -> MongoRelay.buildFieldDefinition(annotation, field))
+					.map(annotation -> buildFieldDefinition(annotation, field))
 					.collect(Collectors.toList());
 
 			fieldsDoc.append(field.getName(), definitions.size() == 1 ? definitions.get(0) : definitions);
 		}
-
+		for (AtlasField customField : customFields) {
+			if (Objects.nonNull(customField)) {
+				Field field = FieldUtils.getField(clazz, customField.name(), true);
+				// if the field is annotated with @BsonProperty, the annotation's value is used for the field name
+				String fieldName = FieldReference.getMongoClass(field);
+				fieldsDoc.append(
+						fieldName,
+						buildFieldDefinition(customField, field)
+				);
+			}
+		}
 		return fieldsDoc;
 	}
 
@@ -920,7 +930,7 @@ public class MongoRelay {
 					if (Objects.equals(annotation.type(), EMBEDDED_DOCUMENTS) && List.class.isAssignableFrom(nested)) {
 						nested = ClassUtils.resolveListElementType(field);
 					}
-					definition.append("fields", buildSearchFields(nested));
+					definition.append("fields", buildSearchFields(nested, new AtlasField[0]));
 				}
 				break;
 			case STRING_FACET:
