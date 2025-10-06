@@ -475,11 +475,19 @@ public class MongoRelay {
 		indexedFields.forEach(field -> this.ensureIndexes(field, collectionName));
 
 		RelayCollection<Document> collection = this.on(collectionName).getCollection();
-		List<Document> existing = collection.listSearchIndexes().into(new ArrayList<>());
+		try {
+			List<Document> existing = collection.listSearchIndexes().into(new ArrayList<>());
 
-		this.ensureCompoundIndexes(clazz, collectionName);
-		this.ensureAtlasSearchIndexes(clazz, collectionName, existing);
-		this.ensureSearchIndex(clazz, collectionName, existing);
+			this.ensureCompoundIndexes(clazz, collectionName);
+			this.ensureAtlasSearchIndexes(clazz, collectionName, existing);
+			this.ensureSearchIndex(clazz, collectionName, existing);
+		} catch (MongoCommandException ex) {
+			if (ex.getErrorCode() == 6047401) {
+				// the list search indexes is not allowed on a none-mongodb atlas
+				return;
+			}
+			throw ex;
+		}
 	}
 
 	/**
