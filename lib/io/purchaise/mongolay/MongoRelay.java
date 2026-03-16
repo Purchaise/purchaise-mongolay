@@ -41,6 +41,9 @@ public class MongoRelay {
 	@Setter
 	MongoDatabase database;
 
+	@Getter
+	private boolean atlas = true;
+
 	protected String packageName = "io.purchaise.mongolay";
 
 	/**
@@ -82,6 +85,12 @@ public class MongoRelay {
 	 */
 	public MongoRelay (MongoDatabase database) {
 		this.database = database;
+	}
+
+
+	public MongoRelay (MongoDatabase database, boolean atlas) {
+		this.database = database;
+		this.atlas = atlas;
 	}
 
 	/**
@@ -475,6 +484,9 @@ public class MongoRelay {
 		indexedFields.forEach(field -> this.ensureIndexes(field, collectionName));
 
 		RelayCollection<Document> collection = this.on(collectionName).getCollection();
+		if (!this.atlas) {
+			return;
+		}
 		try {
 			List<Document> existing = collection.listSearchIndexes().into(new ArrayList<>());
 
