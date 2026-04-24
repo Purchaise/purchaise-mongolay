@@ -592,22 +592,43 @@ public class MongoRelay {
 	private void ensureCompoundIndexes(Class<? extends RelayModel> clazz, String collectionName) {
 
 		List<CompoundIndex> compoundIndexes = List.of(clazz.getAnnotationsByType(CompoundIndex.class));
-		List<IndexModel> indexes = compoundIndexes
-				.stream()
-				.map(item -> new IndexModel(Indexes.compoundIndex(
-						Arrays.stream(item.indexes())
-								.map(index ->
-										index.type().equals(IndexType.ASC) ?
-												Indexes.ascending(index.field()) :
-												Indexes.descending(index.field())
-								)
-								.collect(Collectors.toList())
-				)))
-				.collect(Collectors.toList());
-		if (indexes.isEmpty()) {
+		if (compoundIndexes.isEmpty()) {
 			return;
 		}
 		RelayCollection<Document> collection = this.on(collectionName).getCollection();
+
+		List<Document> existingKeys;
+		try {
+			existingKeys = collection.listIndexes()
+					.into(new ArrayList<>())
+					.stream()
+					.map(doc -> doc.get("key", Document.class))
+					.filter(Objects::nonNull)
+					.collect(Collectors.toList());
+		} catch (MongoCommandException e) {
+			if (e.getErrorCode() == 26) {
+				// NamespaceNotFound
+				return;
+			}
+			throw e;
+		}
+
+		List<IndexModel> indexes = compoundIndexes
+				.stream()
+				.map(item -> {
+					Document keySpec = new Document();
+					for (Index index : item.indexes()) {
+						keySpec.append(index.field(), index.type().equals(IndexType.ASC) ? 1 : -1);
+					}
+					return keySpec;
+				})
+				.filter(keySpec -> existingKeys.stream().noneMatch(existing -> indexKeysEqual(existing, keySpec)))
+				.map(IndexModel::new)
+				.collect(Collectors.toList());
+
+		if (indexes.isEmpty()) {
+			return;
+		}
 		try {
 			collection.createIndexes(indexes);
 		} catch (MongoCommandException e) {
@@ -618,6 +639,31 @@ public class MongoRelay {
 			}
 			throw e;
 		}
+	}
+
+	private static boolean indexKeysEqual(Document existing, Document requested) {
+		if (existing.size() != requested.size()) {
+			return false;
+		}
+		Iterator<Map.Entry<String, Object>> a = existing.entrySet().iterator();
+		Iterator<Map.Entry<String, Object>> b = requested.entrySet().iterator();
+		while (a.hasNext() && b.hasNext()) {
+			Map.Entry<String, Object> ae = a.next();
+			Map.Entry<String, Object> be = b.next();
+			if (!Objects.equals(ae.getKey(), be.getKey())) {
+				return false;
+			}
+			Object av = ae.getValue();
+			Object bv = be.getValue();
+			if (av instanceof Number && bv instanceof Number) {
+				if (((Number) av).intValue() != ((Number) bv).intValue()) {
+					return false;
+				}
+			} else if (!Objects.equals(av, bv)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private void ensureSearchIndex(Class<? extends RelayModel> clazz, String collectionName, List<Document> existing) {
