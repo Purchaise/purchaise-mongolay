@@ -597,14 +597,9 @@ public class MongoRelay {
 		}
 		RelayCollection<Document> collection = this.on(collectionName).getCollection();
 
-		List<Document> existingKeys;
+		List<Document> existingIndexes;
 		try {
-			existingKeys = collection.listIndexes()
-					.into(new ArrayList<>())
-					.stream()
-					.map(doc -> doc.get("key", Document.class))
-					.filter(Objects::nonNull)
-					.collect(Collectors.toList());
+			existingIndexes = collection.listIndexes().into(new ArrayList<>());
 		} catch (MongoCommandException e) {
 			if (e.getErrorCode() == 26) {
 				// NamespaceNotFound
@@ -613,18 +608,45 @@ public class MongoRelay {
 			throw e;
 		}
 
-		List<IndexModel> indexes = compoundIndexes
-				.stream()
-				.map(item -> {
-					Document keySpec = new Document();
-					for (Index index : item.indexes()) {
-						keySpec.append(index.field(), index.type().equals(IndexType.ASC) ? 1 : -1);
+		List<IndexModel> indexes = new ArrayList<>();
+		for (CompoundIndex item : compoundIndexes) {
+			Document keySpec = new Document();
+			for (Index index : item.indexes()) {
+				keySpec.append(index.field(), index.type().equals(IndexType.ASC) ? 1 : -1);
+			}
+
+			Document existing = existingIndexes.stream()
+					.filter(doc -> {
+						Document key = doc.get("key", Document.class);
+						return key != null && indexKeysEqual(key, keySpec);
+					})
+					.findFirst()
+					.orElse(null);
+
+			if (existing != null) {
+				boolean existingUnique = Boolean.TRUE.equals(existing.getBoolean("unique", false));
+				if (existingUnique == item.unique()) {
+					// Index already matches the requested uniqueness — nothing to do.
+					continue;
+				}
+				// Same keys, different uniqueness — drop and recreate. MongoDB does not
+				// support changing the unique flag in place.
+				try {
+					collection.dropIndex(existing.getString("name"));
+				} catch (MongoCommandException e) {
+					if (e.getErrorCode() != 26 && e.getErrorCode() != 27) {
+						// 26 = NamespaceNotFound, 27 = IndexNotFound — both safe to ignore.
+						throw e;
 					}
-					return keySpec;
-				})
-				.filter(keySpec -> existingKeys.stream().noneMatch(existing -> indexKeysEqual(existing, keySpec)))
-				.map(IndexModel::new)
-				.collect(Collectors.toList());
+				}
+			}
+
+			IndexOptions options = new IndexOptions();
+			if (item.unique()) {
+				options.unique(true);
+			}
+			indexes.add(new IndexModel(keySpec, options));
+		}
 
 		if (indexes.isEmpty()) {
 			return;
