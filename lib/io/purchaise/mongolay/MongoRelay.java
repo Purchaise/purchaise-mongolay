@@ -42,6 +42,7 @@ public class MongoRelay {
 	MongoDatabase database;
 
 	@Getter
+	@Setter
 	private boolean atlas = true;
 
 	protected String packageName = "io.purchaise.mongolay";
@@ -119,6 +120,7 @@ public class MongoRelay {
 	 */
 	public MongoRelay (MongoRelay copy) {
 		this.database = copy.database;
+		this.atlas = copy.atlas;
 		this.depth = copy.depth;
 		this.maxDepth = copy.maxDepth;
 		this.collectionClassAcl = copy.collectionClassAcl;
